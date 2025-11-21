@@ -23,6 +23,7 @@
                 <el-table-column prop="waferKey" label="wkey" /> -->
             </el-table>
         </div>
+        <WaferDefectChart :wafer-list="waferAoiList" />
         <div v-if="false" style="margin-top: 20px;">
             <h3>缺陷原始数据 ({{ defectRawList.length }} 条)</h3>
             <el-table :data="defectRawList" style="width: 80%" size="small">
@@ -64,6 +65,7 @@ import BubbleFilter from "@/components/filter.vue";
 import { fetchOptions, fetchWaferAoiList, fetchDefectRawData } from "@/apis/aoi.js";
 import { formatDate } from "@/utils/time.js";
 import WaferCanvas from './wafercanvas.vue'
+import WaferDefectChart from './wafer-defect-chart.vue'
 
 // 添加waferInfo响应式变量
 const waferInfo = ref({});
