@@ -55,7 +55,7 @@
 
 <script setup>
 import { onBeforeUnmount, onMounted, watch, ref } from 'vue'
-import { fetchDefectRawData } from '@/apis/aoi.js'
+import { fetchDefectRawData, fetchDefectDetail } from '@/apis/aoi.js'
 
 const props = defineProps({
   waferList: {
@@ -77,15 +77,19 @@ const setCanvasRef = (el, waferKey, type) => {
   }
 }
 
-const normalizeDefects = (rawList = []) => {
+const normalizeDefects = (rawList = [], detailMap = new Map()) => {
   return rawList
     .map(item => {
       const x = Number(item.waferX)
       const y = Number(item.waferY)
-      const bias = Number(item.bias)
-      if (Number.isNaN(x) || Number.isNaN(y) || Number.isNaN(bias)) return null
       const indexX = Number(item.indexX)
       const indexY = Number(item.indexY)
+      if (Number.isNaN(x) || Number.isNaN(y) || Number.isNaN(indexX) || Number.isNaN(indexY)) return null
+
+      const detail = detailMap.get(item.defectId)
+      const bias = detail ? Number(detail.bias) : NaN
+      if (Number.isNaN(bias)) return null
+
       return { x, y, bias, indexX, indexY }
     })
     .filter(Boolean)
@@ -172,7 +176,24 @@ const fetchSeries = async () => {
     if (!waferKey) return null
     try {
       const rawData = await fetchDefectRawData(waferKey)
-      const normalized = normalizeDefects(rawData)
+      const detailTasks = rawData.map(item =>
+        fetchDefectDetail(waferKey, item.defectId)
+          .then(res => ({ defectId: item.defectId, detail: res }))
+          .catch(err => {
+            console.error(`获取缺陷 ${item.defectId} 详情失败:`, err)
+            return null
+          })
+      )
+
+      const detailResults = await Promise.all(detailTasks)
+      const detailMap = detailResults
+        .filter(Boolean)
+        .reduce((map, cur) => {
+          map.set(cur.defectId, cur.detail)
+          return map
+        }, new Map())
+
+      const normalized = normalizeDefects(rawData, detailMap)
       const chartData = splitByScribe(normalized, wafer)
       return {
         waferKey,
