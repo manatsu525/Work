@@ -168,7 +168,8 @@ const fetchSeries = async () => {
   }
 
   const tasks = props.waferList.map(async wafer => {
-    const waferKey = wafer.waferKey
+    const waferKey = wafer.waferKey || wafer.wafer_key
+    if (!waferKey) return null
     try {
       const rawData = await fetchDefectRawData(waferKey)
       const normalized = normalizeDefects(rawData)
